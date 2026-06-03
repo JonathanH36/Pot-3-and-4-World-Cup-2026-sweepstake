@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Deal or No Deal — World Cup Sweepstake</title>
+
+<!-- ============================================================= -->
+<!--  FONTS                                                        -->
+<!-- ============================================================= -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#06070c;
+    --bg2:#0c0e17;
+    --panel:#10131f;
+    --panel-edge:#1d2233;
+    --gold:#f5c518;
+    --gold-dim:#9a7d18;
+    --red:#e23636;
+    --red-glow:rgba(226,54,54,.55);
+    --blue:#3286f0;
+    --blue-glow:rgba(50,134,240,.55);
+    --text:#f5f6fa;
+    --muted:#8b90a4;
+    --ok:#36c46a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  body{
+    min-height:100vh;min-height:100dvh;
+    background:
+      radial-gradient(900px 600px at 50% -10%, rgba(245,197,24,.10), transparent 60%),
+      radial-gradient(700px 500px at 10% 110%, var(--red-glow), transparent 55%),
+      radial-gradient(700px 500px at 90% 110%, var(--blue-glow), transparent 55%),
+      var(--bg);
+    overflow-x:hidden;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:22px 18px 60px;}
+  .display{font-family:'Anton',sans-serif;letter-spacing:.04em;text-transform:uppercase;line-height:.98;}
+  h1.display{font-size:clamp(34px,9vw,64px);margin:0;}
+  .gold{color:var(--gold);}
+  .glow-gold{text-shadow:0 0 24px rgba(245,197,24,.5);}
+  .sub{color:var(--muted);font-size:14px;letter-spacing:.14em;text-transform:uppercase;}
+  .center{text-align:center;}
+
+  /* ---- buttons ---- */
+  .btn{
+    font-family:'Anton',sans-serif;letter-spacing:.06em;text-transform:uppercase;
+    border:none;border-radius:12px;padding:15px 26px;font-size:19px;cursor:pointer;
+    transition:transform .08s ease, filter .15s ease;width:100%;
+  }
+  .btn:active{transform:scale(.97);}
+  .btn-gold{background:linear-gradient(135deg,#ffd84a,#e0a500);color:#1a1405;
+    box-shadow:0 6px 24px rgba(245,197,24,.35);}
+  .btn-ghost{background:transparent;border:1.5px solid var(--panel-edge);color:var(--text);}
+  .btn-red{background:linear-gradient(135deg,#ff5252,#b51d1d);color:#fff;
+    box-shadow:0 6px 24px var(--red-glow);}
+  .btn-green{background:linear-gradient(135deg,#52e08a,#1f9c4f);color:#06140a;
+    box-shadow:0 6px 24px rgba(54,196,106,.3);}
+  .btn[disabled]{opacity:.4;cursor:not-allowed;filter:grayscale(.4);}
+  .btn-row{display:flex;gap:12px;}
+  .btn-row .btn{flex:1;}
+
+  /* ---- inputs ---- */
+  input.fld{
+    width:100%;background:#070910;border:1.5px solid var(--panel-edge);border-radius:12px;
+    padding:15px 16px;color:var(--text);font-size:18px;font-family:'DM Sans',sans-serif;outline:none;
+  }
+  input.fld:focus{border-color:var(--gold);}
+  input.code{text-transform:uppercase;letter-spacing:.3em;font-family:'Anton',sans-serif;text-align:center;font-size:28px;}
+
+  /* ---- panels ---- */
+  .card{
+    background:linear-gradient(180deg,var(--panel),#0b0d16);
+    border:1px solid var(--panel-edge);border-radius:18px;padding:22px;
+    box-shadow:0 18px 50px rgba(0,0,0,.55);
+  }
+  .stack>*+*{margin-top:14px;}
+  .stack-lg>*+*{margin-top:22px;}
+
+  /* ---- player chips ---- */
+  .chips{display:flex;flex-wrap:wrap;gap:10px;}
+  .chip{
+    display:flex;align-items:center;gap:8px;background:#0a0c15;border:1px solid var(--panel-edge);
+    border-radius:999px;padding:9px 15px;font-weight:600;font-size:15px;
+  }
+  .chip .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);}
+  .chip.banker{border-color:var(--gold);color:var(--gold);box-shadow:0 0 18px rgba(245,197,24,.25);}
+  .chip.pick{cursor:pointer;}
+  .chip.pick:active{transform:scale(.96);}
+
+  /* ---- box grid ---- */
+  .boxgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;}
+  .box{
+    position:relative;aspect-ratio:1/1.08;border-radius:14px;cursor:pointer;
+    background:linear-gradient(160deg,#1a1f33,#0c0f1a);
+    border:1px solid #2a3047;display:flex;align-items:center;justify-content:center;
+    font-family:'Anton',sans-serif;font-size:clamp(20px,6vw,30px);color:#cfd6ea;
+    transition:transform .1s ease, box-shadow .2s ease, opacity .3s ease;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 6px 16px rgba(0,0,0,.4);
+    overflow:hidden;
+  }
+  .box::before{content:"";position:absolute;inset:0;
+    background:radial-gradient(120% 60% at 50% -10%,rgba(255,255,255,.12),transparent 60%);}
+  .box.mine{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 0 22px rgba(245,197,24,.35);}
+  .box.mine:active{transform:scale(.95);}
+  .box.locked{cursor:default;}
+  .box.opened{cursor:default;}
+  .box.opened.red{background:linear-gradient(160deg,#3a0f12,#1c0708);border-color:var(--red);
+    box-shadow:0 0 18px var(--red-glow);}
+  .box.opened.blue{background:linear-gradient(160deg,#0c2244,#06101f);border-color:var(--blue);
+    box-shadow:0 0 18px var(--blue-glow);}
+  .box .team{font-family:'DM Sans',sans-serif;font-weight:700;font-size:11px;line-height:1.1;
+    text-align:center;padding:4px;text-transform:none;letter-spacing:0;}
+  .box .num-sm{position:absolute;top:5px;left:7px;font-size:12px;color:var(--muted);}
+  .box.contestant{border-color:var(--gold);background:linear-gradient(160deg,#2a2410,#14110a);
+    box-shadow:0 0 26px rgba(245,197,24,.4);}
+
+  /* ---- board (eliminated teams) ---- */
+  .board{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .board h3{font-family:'Anton',sans-serif;letter-spacing:.06em;margin:0 0 10px;font-size:16px;text-transform:uppercase;}
+  .board .pot-red h3{color:var(--red);}
+  .board .pot-blue h3{color:var(--blue);}
+  .teamline{display:flex;align-items:center;justify-content:space-between;
+    padding:7px 11px;border-radius:9px;margin-bottom:6px;font-size:14px;font-weight:600;
+    background:#0a0c15;border:1px solid var(--panel-edge);}
+  .teamline.out{opacity:.32;text-decoration:line-through;}
+  .teamline.out.red{border-color:var(--red);}
+  .teamline.out.blue{border-color:var(--blue);}
+
+  /* ---- big number reveal ---- */
+  .bignum{font-family:'Anton',sans-serif;font-size:clamp(80px,30vw,180px);line-height:1;
+    color:var(--gold);text-shadow:0 0 50px rgba(245,197,24,.6);}
+  .roll{animation:roll .07s linear infinite;}
+  @keyframes roll{0%{opacity:.5;transform:translateY(-6px) scale(.96);}100%{opacity:1;transform:translateY(0) scale(1);}}
+  @keyframes pop{0%{transform:scale(.4);opacity:0;}60%{transform:scale(1.12);}100%{transform:scale(1);opacity:1;}}
+  .pop{animation:pop .5s cubic-bezier(.2,1.3,.4,1) both;}
+  @keyframes fade{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+  .fade{animation:fade .45s ease both;}
+
+  .pill{display:inline-block;padding:5px 13px;border-radius:999px;font-size:12px;font-weight:700;
+    letter-spacing:.12em;text-transform:uppercase;}
+  .pill.red{background:rgba(226,54,54,.16);color:#ff8a8a;border:1px solid var(--red);}
+  .pill.blue{background:rgba(50,134,240,.16);color:#9cc4ff;border:1px solid var(--blue);}
+  .pill.gold{background:rgba(245,197,24,.16);color:var(--gold);border:1px solid var(--gold);}
+
+  .hint{color:var(--muted);font-size:13px;line-height:1.5;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+  .roomcode{font-family:'Anton',sans-serif;letter-spacing:.25em;font-size:22px;color:var(--gold);}
+  .offer-team{font-family:'Anton',sans-serif;font-size:clamp(30px,9vw,52px);color:var(--gold);
+    text-shadow:0 0 30px rgba(245,197,24,.5);text-align:center;}
+  .err{color:#ff8a8a;font-size:14px;font-weight:600;}
+  .qr{background:#fff;padding:12px;border-radius:14px;display:inline-block;}
+  .qr img{display:block;width:160px;height:160px;}
+  .roundtag{font-family:'Anton',sans-serif;letter-spacing:.08em;color:var(--gold);font-size:15px;text-transform:uppercase;}
+  .setup-banner{background:rgba(226,54,54,.1);border:1px solid var(--red);border-radius:12px;
+    padding:14px 16px;font-size:13px;line-height:1.5;}
+  .setup-banner b{color:#ff8a8a;}
+  code{background:#070910;border:1px solid var(--panel-edge);border-radius:6px;padding:2px 6px;font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<!-- ============================================================= -->
+<!--  APP                                                          -->
+<!-- ============================================================= -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getDatabase, ref, set, update, get, onValue, runTransaction, onDisconnect, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+/* =================================================================
+   1.  FIREBASE CONFIG  —  ⚠️ FILL THIS IN BEFORE DEPLOYING
+   -----------------------------------------------------------------
+   Get these values from the Firebase console:
+     console.firebase.google.com → your project → Project settings
+     → "Your apps" → Web app → SDK setup and configuration → "Config"
+   You MUST enable Realtime Database (not Firestore) and set its rules
+   to test mode (see the README notes I gave you).
+   ================================================================= */
+const firebaseConfig = {
+  apiKey:            "AIzaSyBQ1Q23QII41iaLTRUhf1AD-yjkHcHg7uA",
+  authDomain:        "deal-or-no-deal-107a9.firebaseapp.com",
+  databaseURL:       "https://deal-or-no-deal-107a9-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:         "deal-or-no-deal-107a9",
+  storageBucket:     "deal-or-no-deal-107a9.firebasestorage.app",
+  messagingSenderId: "22871009592",
+  appId:             "1:22871009592:web:7680b9066340d437cc79cd"
+};
+const CONFIGURED = !firebaseConfig.apiKey.startsWith("PASTE_");
+
+/* =================================================================
+   2.  TEAM DATA  (Pot 3 = RED, Pot 4 = BLUE)
+   ================================================================= */
+const POT3 = ["Norway","Panama","Egypt","Algeria","Scotland","Paraguay",
+              "Tunisia","Ivory Coast","Uzbekistan","Qatar","Saudi Arabia","South Africa"];
+const POT4 = ["Jordan","Cape Verde","Curacao","Haiti","New Zealand","Ghana",
+              "Turkiye","Sweden","Czechia","Bosnia & Herz.","DR Congo","Iraq"];
+
+const ROUND_TARGETS = [5,5,4,4,4]; // boxes opened per round; then 2 left for the finale
+
+/* =================================================================
+   3.  LOCAL IDENTITY  (persists across refreshes on a real host)
+   ================================================================= */
+function uid(){
+  // sessionStorage is per-TAB, so each browser tab is a separate player.
+  // (localStorage is shared across tabs — esp. on file:// pages — which made
+  //  every new tab look like the same person.) Survives reloads of the same tab.
+  try{
+    let id = sessionStorage.getItem("dond_pid");
+    if(!id){ id = Math.random().toString(36).slice(2,10); sessionStorage.setItem("dond_pid", id); }
+    return id;
+  }catch(e){
+    if(!window.__dond_pid) window.__dond_pid = Math.random().toString(36).slice(2,10);
+    return window.__dond_pid;
+  }
+}
+const ME = uid();
+
+let db = null;
+if(CONFIGURED){
+  const fbApp = initializeApp(firebaseConfig);
+  db = getDatabase(fbApp);
+}
+
+/* =================================================================
+   4.  STATE
+   ================================================================= */
+let ROOM = null;       // current room code
+let STATE = null;      // latest room snapshot
+let unsub = null;      // detach listener
+let lastBigNum = null; // for reveal animation guard
+
+const $app = document.getElementById("app");
+const rand = n => Math.floor(Math.random()*n);
+const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=rand(i+1);[a[i],a[j]]=[a[j],a[i]];} return a; };
+// split `total` into `parts` whole numbers as evenly as possible, e.g. distribute(24,5) -> [5,5,5,5,4]
+const distribute = (total, parts) => {
+  const base = Math.floor(total/parts), rem = total%parts;
+  return Array.from({length:parts},(_,i)=> base + (i<rem?1:0));
+};
+const esc = s => (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* =================================================================
+   5.  ROOM PLUMBING
+   ================================================================= */
+function roomRef(p=""){ return ref(db, `rooms/${ROOM}${p}`); }
+
+async function createRoom(name){
+  const code = genCode();
+  ROOM = code;
+  const room = {
+    code, hostId: ME, phase:"lobby", createdAt: serverTimestamp(),
+    bankerId:"", contestantId:"", contestantBox:0, calledBox:0,
+    finaleStage:"", swapped:false, finalBox:0,
+    round:0, roundTarget:0, openedThisRound:0,
+    players:{ [ME]:{ name, joinedAt: serverTimestamp() } },
+    boxes:{}, offer:null, finalResult:"", bankedTeam:"", outcome:""
+  };
+  await set(roomRef(), room);
+  presence();
+  listen();
+}
+
+async function joinRoom(code, name){
+  ROOM = code.toUpperCase().trim();
+  const snap = await get(roomRef());
+  if(!snap.exists()) throw new Error("No room with that code.");
+  const data = snap.val();
+  if(data.phase!=="lobby" && !data.players?.[ME])
+    throw new Error("That game has already started.");
+  await update(roomRef(`/players/${ME}`), { name, joinedAt: serverTimestamp() });
+  presence();
+  listen();
+}
+
+function presence(){
+  // mark connected; clear name on disconnect only while still in lobby
+  const pRef = roomRef(`/players/${ME}/online`);
+  set(pRef, true);
+  onDisconnect(pRef).set(false);
+}
+
+function listen(){
+  if(unsub) unsub();
+  unsub = onValue(roomRef(), snap=>{
+    STATE = snap.val();
+    if(!STATE){ render(); return; }
+    hostTick();      // host device drives phase transitions
+    render();
+  });
+}
+
+function genCode(){
+  const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  return Array.from({length:4},()=>A[rand(A.length)]).join("");
+}
+
+/* =================================================================
+   6.  HOST-ONLY GAME LOGIC  (only the room creator runs these,
+       so randomisation & phase changes happen on ONE device)
+   ================================================================= */
+function isHost(){ return STATE && STATE.hostId===ME; }
+
+function players(){ return Object.entries(STATE.players||{}).map(([id,p])=>({id,...p})); }
+function nonBankerPlayers(){ return players().filter(p=>p.id!==STATE.bankerId); }
+
+function hostTick(){
+  if(!isHost() || !STATE) return;
+  const ph = STATE.phase;
+
+  // auto-advance when a round's quota of boxes is opened
+  if(ph==="playing" && STATE.openedThisRound >= STATE.roundTarget){
+    update(roomRef(), { phase:"offer" });
+  }
+  // when contestant says NO DEAL, advance to next round (or finale)
+  if(ph==="offer" && STATE.offer && STATE.offer.status==="nodeal"){
+    advanceRound();
+  }
+}
+
+async function startContestantDraw(){
+  // 1. shuffle teams into 24 boxes
+  const teams = [
+    ...POT3.map(t=>({team:t,pot:3})),
+    ...POT4.map(t=>({team:t,pot:4}))
+  ];
+  const deck = shuffle(teams);
+  const boxes = {};
+  // keys are "b1".."b24" so Firebase never coerces them into a 0-indexed array
+  for(let i=1;i<=24;i++){ boxes["b"+i] = {no:i, team:deck[i-1].team, pot:deck[i-1].pot, opened:false, holderId:"", openedBy:""}; }
+
+  // 2. assign all 24 boxes evenly across the non-banker players (e.g. 5 players -> 5/5/5/5/4)
+  const nb = shuffle(nonBankerPlayers().map(p=>p.id));
+  const sizes = distribute(24, nb.length);
+  let bn = shuffle([...Array(24)].map((_,i)=>i+1));
+  nb.forEach((pid,idx)=>{ for(let k=0;k<sizes[idx];k++){ boxes["b"+bn.pop()].holderId = pid; } });
+
+  await update(roomRef(), { boxes, phase:"contestantReveal" });
+}
+
+async function pickContestant(){
+  const boxNo = rand(24)+1;                 // 1..24
+  const contestantId = STATE.boxes["b"+boxNo].holderId;
+  const boxes = JSON.parse(JSON.stringify(STATE.boxes));
+
+  // set the chosen box aside for the contestant
+  boxes["b"+boxNo].holderId = contestantId;
+  boxes["b"+boxNo].isContestant = true;
+
+  // redistribute the OTHER 23 boxes evenly among the remaining non-contestant, non-banker players
+  const others = nonBankerPlayers().filter(p=>p.id!==contestantId).map(p=>p.id);
+  const sizes = distribute(23, others.length);
+  const pool = shuffle(boxNums().filter(n=>n!==boxNo));
+  const ord = shuffle(others);
+  ord.forEach((pid,idx)=>{ for(let k=0;k<sizes[idx];k++){ boxes["b"+pool.pop()].holderId = pid; } });
+
+  await update(roomRef(), {
+    boxes, contestantId, contestantBox:boxNo,
+    pickedNumber:boxNo, phase:"contestantResult"
+  });
+}
+
+async function beginRounds(){
+  await update(roomRef(), { phase:"playing", round:1, roundTarget:ROUND_TARGETS[0], openedThisRound:0, offer:null, calledBox:0 });
+}
+
+async function advanceRound(){
+  const next = STATE.round + 1;
+  if(next > ROUND_TARGETS.length){
+    // finale: only the contestant box + 1 other remain. Banker acts first.
+    await update(roomRef(), { phase:"finale", offer:null, calledBox:0, finaleStage:"banker", swapped:false, finalBox:STATE.contestantBox });
+  } else {
+    await update(roomRef(), { phase:"playing", round:next, roundTarget:ROUND_TARGETS[next-1], openedThisRound:0, offer:null, calledBox:0 });
+  }
+}
+
+/* =================================================================
+   7.  PLAYER ACTIONS  (any device writes its own action)
+   ================================================================= */
+// Contestant calls a specific box number; only its holder can then open it.
+async function callBox(n){
+  if(STATE.phase!=="playing") return;
+  if(STATE.contestantId!==ME) return;     // only the contestant calls
+  if(STATE.calledBox) return;             // one at a time
+  const b = box(n);
+  if(!b || b.opened || b.isContestant) return;
+  await update(roomRef(), { calledBox:n });
+}
+
+async function openBox(n){
+  if(STATE.phase!=="playing") return;
+  if(STATE.calledBox!==n) return;         // only the box the contestant called
+  const b = box(n);
+  if(!b || b.opened || b.isContestant) return;
+  if(b.holderId!==ME) return;             // only its holder opens it
+
+  // atomically cap the round so we never over-open
+  const res = await runTransaction(roomRef("/openedThisRound"), cur=>{
+    if((cur||0) >= STATE.roundTarget) return; // abort
+    return (cur||0)+1;
+  });
+  if(!res.committed) return;
+  await update(roomRef(), {
+    [`boxes/b${n}/opened`]: true,
+    [`boxes/b${n}/openedBy`]: ME,
+    calledBox: 0
+  });
+}
+
+async function submitOffer(team, isSwap){
+  await set(roomRef("/offer"), { team:team||"", round:STATE.round, status:"pending", swap:!!isSwap });
+}
+
+async function dealResponse(accepted){
+  if(!STATE.offer) return;
+  if(accepted){
+    let result, outcome;
+    if(STATE.offer.swap){
+      // contestant swaps their box for the other remaining box
+      const other = remainingBoxNumbers().find(n=>n!==STATE.contestantBox);
+      const ob = box(other);
+      if(!ob) return; // safety: nothing to swap to
+      result = ob.team; outcome = "swapped";
+    } else {
+      result = STATE.offer.team; outcome = "banked";
+    }
+    await update(roomRef(), { "offer/status":"deal", finalResult:result, bankedTeam:result, outcome, phase:"finished" });
+  } else {
+    // declined a round offer: mark nodeal so the host advances the round
+    await update(roomRef(), { "offer/status":"nodeal" });
+  }
+}
+
+async function finaliseKeepBox(){
+  const b = box(STATE.contestantBox);
+  await update(roomRef(), { finalResult: b?b.team:"", outcome:"kept", phase:"finished" });
+}
+
+/* ---- finale actions (banker-controlled) ---- */
+function otherFinaleBox(){ return remainingBoxNumbers().find(n=>n!==STATE.contestantBox); }
+
+async function bankerOfferSwap(){           // banker chooses to offer the swap
+  await update(roomRef(), { offer:{ swap:true, status:"pending", round:STATE.round } });
+}
+async function bankerNoSwap(){              // banker declines to offer a swap → straight to open
+  await update(roomRef(), { offer:null, finaleStage:"open", swapped:false, finalBox:STATE.contestantBox });
+}
+async function contestantSwapDecision(doSwap){   // contestant responds to a swap offer
+  const fb = doSwap ? otherFinaleBox() : STATE.contestantBox;
+  await update(roomRef(), { offer:null, finaleStage:"open", swapped:!!doSwap, finalBox:fb });
+}
+async function openFinalBox(){              // contestant opens whichever box is now theirs
+  const fb = STATE.finalBox || STATE.contestantBox;
+  const b = box(fb);
+  await update(roomRef(), {
+    finalResult: b?b.team:"",
+    outcome: STATE.swapped ? "swapped" : "kept",
+    phase:"finished"
+  });
+}
+
+async function resetGame(){
+  await update(roomRef(), {
+    phase:"lobby", contestantId:"", contestantBox:0, calledBox:0, pickedNumber:0,
+    finaleStage:"", swapped:false, finalBox:0,
+    round:0, roundTarget:0, openedThisRound:0, boxes:{}, offer:null,
+    finalResult:"", bankedTeam:"", outcome:""
+  });
+}
+
+/* helpers on state */
+function box(n){ return STATE.boxes ? STATE.boxes["b"+n] : undefined; }
+function boxNums(){ return Object.keys(STATE.boxes||{}).map(k=>parseInt(k.slice(1),10)).filter(n=>!isNaN(n)); }
+function remainingBoxNumbers(){
+  return boxNums().filter(n => box(n).isContestant || !box(n).opened);
+}
+function myBoxes(){
+  if(!STATE.boxes) return [];
+  return boxNums()
+    .filter(n=>box(n).holderId===ME && !box(n).isContestant)
+    .sort((a,b)=>a-b);
+}
+function name(id){ return STATE.players?.[id]?.name || "—"; }
+function holderOf(n){ const b=box(n); return b?b.holderId:""; }
+function iHold(n){ return holderOf(n)===ME; }
+
+/* The play-phase number grid: contestant calls a number, its holder opens it. */
+function playGridHTML(){
+  const called = STATE.calledBox;
+  const amContestant = STATE.contestantId===ME;
+  const cells = boxNums().sort((a,b)=>a-b).map(n=>{
+    const b = box(n);
+    if(b.isContestant){
+      return `<div class="box contestant"><span class="num-sm">#${n}</span>${amContestant?'YOURS':'CONTESTANT'}</div>`;
+    }
+    if(b.opened){
+      return `<div class="box opened ${b.pot===3?'red':'blue'}"><span class="num-sm">#${n}</span><span class="team">${esc(b.team)}</span></div>`;
+    }
+    // unopened
+    if(called===n){
+      // the called box: its holder can open it
+      if(iHold(n)) return `<div class="box mine" data-open="${n}" style="box-shadow:0 0 0 2px var(--gold),0 0 26px rgba(245,197,24,.5)"><span class="num-sm">#${n}</span>OPEN</div>`;
+      return `<div class="box locked" style="box-shadow:0 0 0 2px var(--gold)"><span class="num-sm">#${n}</span>${n}</div>`;
+    }
+    // not called yet
+    if(amContestant && !called){
+      return `<div class="box mine" data-call="${n}"><span class="num-sm">#${n}</span>${n}</div>`;
+    }
+    return `<div class="box locked"><span class="num-sm">#${n}</span>${n}</div>`;
+  }).join("");
+  return `<div class="card stack"><div class="boxgrid">${cells}</div></div>`;
+}
+
+/* =================================================================
+   8.  RENDER
+   ================================================================= */
+function render(){
+  if(!CONFIGURED){ return renderSetup(); }
+  if(!ROOM || !STATE){ return renderLanding(); }
+
+  switch(STATE.phase){
+    case "lobby":            return renderLobby();
+    case "contestantReveal": return renderContestantReveal();
+    case "contestantResult": return renderContestantResult();
+    case "playing":          return renderPlaying();
+    case "offer":            return renderOffer();
+    case "finale":           return renderFinale();
+    case "finished":         return renderFinished();
+    default:                 return renderLanding();
+  }
+}
+
+/* ---- setup screen (config missing) ---- */
+function renderSetup(){
+  $app.innerHTML = `
+    <h1 class="display center">DEAL <span class="gold">or</span> NO DEAL</h1>
+    <p class="sub center" style="margin-top:6px">World Cup Sweepstake</p>
+    <div class="card setup-banner" style="margin-top:26px">
+      <b>Almost there — Firebase not configured yet.</b><br><br>
+      Open this file and paste your Firebase project keys into the
+      <code>firebaseConfig</code> block near the top of the script, then re-deploy.
+      I've left step-by-step setup notes in the message alongside this file.
+    </div>`;
+}
+
+/* ---- landing ---- */
+function renderLanding(){
+  $app.innerHTML = `
+    <h1 class="display center">DEAL <span class="gold glow-gold">or</span> NO DEAL</h1>
+    <p class="sub center" style="margin-top:8px">World Cup 2026 Sweepstake · Pots 3 &amp; 4</p>
+    <div class="card stack" style="margin-top:30px">
+      <input class="fld" id="name" placeholder="Your name" autocomplete="off" maxlength="14"/>
+      <button class="btn btn-gold" id="create">Create a room</button>
+      <div class="sub center" style="margin:4px 0">— or join one —</div>
+      <input class="fld code" id="code" placeholder="CODE" maxlength="4"/>
+      <button class="btn btn-ghost" id="join">Join room</button>
+      <p class="err" id="err" style="display:none"></p>
+    </div>
+    <p class="hint center" style="margin-top:18px">Each player uses their own phone. One screen creates the room, everyone else joins with the code.</p>`;
+
+  const nm=()=>document.getElementById("name").value.trim();
+  const showErr=m=>{const e=document.getElementById("err");e.textContent=m;e.style.display="block";};
+  document.getElementById("create").onclick=async()=>{
+    if(!nm()) return showErr("Enter your name first.");
+    try{ await createRoom(nm()); }catch(e){ showErr(e.message); }
+  };
+  document.getElementById("join").onclick=async()=>{
+    if(!nm()) return showErr("Enter your name first.");
+    const c=document.getElementById("code").value;
+    if(c.length<4) return showErr("Enter the 4-letter room code.");
+    try{ await joinRoom(c,nm()); }catch(e){ showErr(e.message); }
+  };
+}
+
+/* ---- lobby ---- */
+function renderLobby(){
+  const ps = players();
+  const bankerSet = !!STATE.bankerId;
+  const amHost = isHost();
+  const testMode = !!STATE.testMode;
+  const nbCount = ps.filter(p=>p.id!==STATE.bankerId).length; // box-holders (non-banker)
+
+  // Normal: exactly 6 players + banker. Test: banker + at least 2 non-banker players.
+  const canStart = bankerSet && (testMode ? nbCount>=2 : ps.length===6);
+
+  let startLabel;
+  if(!bankerSet) startLabel = "Choose a banker first";
+  else if(testMode) startLabel = nbCount>=2 ? `Start (test · ${ps.length} players)` : "Need 2+ non-banker players";
+  else startLabel = ps.length===6 ? "Start the game" : "Waiting for 6 players…";
+
+  $app.innerHTML = `
+    <div class="topbar">
+      <div><div class="sub">Room code</div><div class="roomcode">${STATE.code}</div></div>
+      <div class="pill gold">${ps.length}${testMode?'':'/6'} players</div>
+    </div>
+    <div class="card stack-lg">
+      <div class="center qr">
+        <img alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(location.href.split('#')[0])}"/>
+      </div>
+      <p class="hint center">Others can scan this, or open the same link and enter code <b class="gold">${STATE.code}</b>.</p>
+
+      <div>
+        <div class="sub" style="margin-bottom:10px">In the room</div>
+        <div class="chips">
+          ${ps.map(p=>`
+            <div class="chip ${p.id===STATE.bankerId?'banker':''} ${amHost&&!bankerSet?'pick':''}" data-id="${p.id}">
+              <span class="dot"></span>${esc(p.name)}${p.id===STATE.bankerId?' · BANKER':''}${p.id===STATE.hostId?' ·★':''}
+            </div>`).join("")}
+        </div>
+      </div>
+
+      ${ amHost ? `
+        <div>
+          <div class="sub" style="margin-bottom:8px">${bankerSet?'Banker chosen':'Tap a player to make them the banker'}</div>
+          ${bankerSet?`<button class="btn btn-ghost" id="clearBanker">Change banker</button>`:''}
+        </div>
+        <button class="btn ${testMode?'btn-ghost':'btn-ghost'}" id="toggleTest" style="opacity:${testMode?1:.7}">
+          ${testMode?'✓ Test mode ON (any player count)':'Enable test mode (start with fewer players)'}
+        </button>
+        <button class="btn btn-gold" id="start" ${canStart?'':'disabled'}>${startLabel}</button>
+      ` : `
+        <p class="hint center">${bankerSet?`Banker is <b class="gold">${esc(name(STATE.bankerId))}</b>. Waiting for the host to start…`:'Waiting for the host to choose a banker…'}</p>
+      `}
+    </div>
+    <p class="hint center" style="margin-top:16px">★ = host (controls the game). Keep the host screen open and awake throughout.${testMode?'<br><b class="gold">Test mode:</b> boxes split evenly across whoever is in the room.':''}</p>`;
+
+  if(amHost && !bankerSet){
+    [...document.querySelectorAll(".chip.pick")].forEach(c=>{
+      c.onclick=()=>update(roomRef(),{bankerId:c.dataset.id});
+    });
+  }
+  const cb=document.getElementById("clearBanker"); if(cb) cb.onclick=()=>update(roomRef(),{bankerId:""});
+  const tt=document.getElementById("toggleTest"); if(tt) tt.onclick=()=>update(roomRef(),{testMode:!testMode});
+  const st=document.getElementById("start"); if(st) st.onclick=()=>startContestantDraw();
+}
+
+/* ---- contestant reveal: show boxes, then the 1-24 generator ---- */
+function renderContestantReveal(){
+  const mine = myBoxes();
+  const amBanker = STATE.bankerId===ME;
+
+  $app.innerHTML = `
+    <div class="topbar">
+      <div class="roundtag">The boxes are dealt</div>
+      <div class="pill gold">24 boxes</div>
+    </div>
+    <div class="card stack">
+      ${ amBanker
+        ? `<p class="center sub">You are the <span class="gold">banker</span>. You hold no boxes.</p>`
+        : (mine.length
+            ? `<p class="center sub">Your boxes</p>
+               <div class="boxgrid">${mine.map(n=>`<div class="box locked"><span class="num-sm">#${n}</span>${n}</div>`).join("")}</div>`
+            : `<p class="center sub">Waiting…</p>`)}
+      <p class="hint center">Nobody knows what's inside any box — not even the banker. When everyone's ready, the contestant is drawn at random from all 24.</p>
+      ${ isHost()
+        ? `<button class="btn btn-gold" id="draw">Draw the contestant (1–24)</button>`
+        : `<p class="hint center">Waiting for the host to draw the contestant…</p>`}
+    </div>`;
+
+  const d=document.getElementById("draw");
+  if(d) d.onclick=()=>runNumberAnimation();
+}
+
+/* host plays a quick local roll, then writes the real pick */
+function runNumberAnimation(){
+  let t=0;
+  const tick=()=>{
+    $app.querySelector("#draw")?.setAttribute("disabled","");
+    t++;
+  };
+  pickContestant(); // writes state → everyone moves to contestantResult
+}
+
+/* ---- contestant result: animated 1-24 reveal on every screen ---- */
+function renderContestantResult(){
+  const picked = STATE.pickedNumber;
+  const cId = STATE.contestantId;
+  const amContestant = cId===ME;
+
+  // roll animation (runs once per device)
+  $app.innerHTML = `
+    <div class="card center stack" style="padding-top:34px">
+      <div class="sub">The contestant is…</div>
+      <div class="bignum" id="num">--</div>
+      <div id="reveal" style="min-height:54px"></div>
+      ${ isHost() ? `<button class="btn btn-gold" id="go" style="display:none">Begin Round 1</button>` : `<p class="hint" id="wait" style="display:none">Waiting for the host…</p>`}
+    </div>`;
+
+  const numEl=document.getElementById("num");
+  let n=0, ticks=0, total=28+rand(8);
+  numEl.classList.add("roll");
+  const iv=setInterval(()=>{
+    n=rand(24)+1; numEl.textContent=n; ticks++;
+    if(ticks>=total){
+      clearInterval(iv);
+      numEl.classList.remove("roll"); numEl.classList.add("pop");
+      numEl.textContent=picked;
+      document.getElementById("reveal").innerHTML=`
+        <div class="fade" style="margin-top:14px">
+          <span class="pill ${box(picked).pot===3?'red':'blue'}">Box #${picked}</span>
+          <div class="display" style="font-size:34px;margin-top:12px">${esc(name(cId))}</div>
+          <p class="hint" style="margin-top:8px">${amContestant?"That's you — you're the contestant! Your box is set aside.":esc(name(cId))+" is the contestant."}</p>
+        </div>`;
+      const go=document.getElementById("go"); if(go){ go.style.display="block"; go.onclick=()=>beginRounds(); }
+      const w=document.getElementById("wait"); if(w) w.style.display="block";
+    }
+  },70);
+}
+
+/* ---- main play screen ---- */
+function renderPlaying(){
+  const amContestant = STATE.contestantId===ME;
+  const amBanker = STATE.bankerId===ME;
+  const left = STATE.roundTarget - (STATE.openedThisRound||0);
+  const called = STATE.calledBox;
+  const calledHolder = called ? name(holderOf(called)) : "";
+
+  // status line depends on whether a box is currently called
+  let status;
+  if(called){
+    if(iHold(called)) status = `<p><b class="gold">Box #${called}</b> is yours — tap it to reveal!</p>`;
+    else if(amContestant) status = `<p>You called <b class="gold">#${called}</b>. Waiting for <b>${esc(calledHolder)}</b> to open it…</p>`;
+    else status = `<p><b class="gold">#${called}</b> called. Waiting for <b>${esc(calledHolder)}</b> to open it…</p>`;
+  } else {
+    if(amContestant) status = `<p>Call a number — tap any sealed box below. <b class="gold">${left}</b> to open this round.</p>`;
+    else if(amBanker) status = `<p>Banker, sit tight. <b class="gold">${left}</b> box${left===1?'':'es'} to open this round, then you make your offer.</p>`;
+    else status = `<p>Waiting for <b class="gold">${esc(name(STATE.contestantId))}</b> to call a number…</p>`;
+  }
+
+  const role = amContestant ? "You're the contestant" : amBanker ? "You're the banker" : "Box holder";
+
+  $app.innerHTML = `
+    <div class="topbar">
+      <div class="roundtag">Round ${STATE.round} · open ${STATE.roundTarget}</div>
+      <div class="pill gold">${left} to open</div>
+    </div>
+
+    <div class="card center stack" style="margin-bottom:16px">
+      <div class="sub">${role}</div>
+      ${status}
+      ${amContestant?`<p class="hint">Your own box (#${STATE.contestantBox}) is safe and sealed until the end.</p>`:''}
+    </div>
+
+    ${playGridHTML()}`;
+
+  // contestant taps a sealed box to call it
+  [...document.querySelectorAll("[data-call]")].forEach(el=>{
+    el.onclick=()=>{ el.classList.add("locked"); callBox(Number(el.dataset.call)); };
+  });
+  // the called box's holder taps to open it
+  [...document.querySelectorAll("[data-open]")].forEach(el=>{
+    el.onclick=()=>{ el.classList.add("locked"); openBox(Number(el.dataset.open)); };
+  });
+}
+
+/* ---- banker offer screen ---- */
+function renderOffer(){
+  const amBanker = STATE.bankerId===ME;
+  const amContestant = STATE.contestantId===ME;
+  const offer = STATE.offer;
+  const pending = offer && offer.status==="pending";
+
+  $app.innerHTML = `
+    <div class="topbar">
+      <div class="roundtag">Round ${STATE.round} · offer</div>
+      <div class="pill gold">${remainingBoxNumbers().length} boxes left</div>
+    </div>
+
+    ${ amBanker && !pending ? `
+      <div class="card stack">
+        <div class="center sub">Banker — make your offer</div>
+        <p class="hint center">Offer the contestant any football team to tempt them away from their box. It can be a team still in play or any other team in the world.</p>
+        <input class="fld" id="offerTeam" placeholder="e.g. Brazil, Wales, Italy…" maxlength="28"/>
+        <button class="btn btn-gold" id="makeOffer">Send offer</button>
+      </div>` : ``}
+
+    ${ pending && amContestant ? `
+      <div class="card center stack">
+        <div class="sub">The banker offers you</div>
+        <div class="offer-team pop">${esc(offer.team)}</div>
+        <p class="hint">Bank this team, or open more boxes?</p>
+        <div class="btn-row">
+          <button class="btn btn-green" id="deal">DEAL</button>
+          <button class="btn btn-red" id="nodeal">NO DEAL</button>
+        </div>
+      </div>` : ``}
+
+    ${ pending && !amContestant ? `
+      <div class="card center stack">
+        <div class="sub">Offer on the table</div>
+        <div class="offer-team pop">${esc(offer.team)}</div>
+        <p class="hint">Waiting for <b class="gold">${esc(name(STATE.contestantId))}</b> to decide…</p>
+      </div>` : ``}
+
+    ${ !pending && !amBanker ? `
+      <div class="card center"><p class="hint">Waiting for the banker's offer…</p></div>` : ``}
+
+    ${boardHTML()}`;
+
+  const mk=document.getElementById("makeOffer");
+  if(mk) mk.onclick=()=>{
+    const t=document.getElementById("offerTeam").value.trim();
+    if(!t) return;
+    submitOffer(t,false);
+  };
+  const d=document.getElementById("deal"); if(d) d.onclick=()=>dealResponse(true);
+  const nd=document.getElementById("nodeal"); if(nd) nd.onclick=()=>dealResponse(false);
+}
+
+/* ---- finale: 2 boxes left, banker-controlled ---- */
+function renderFinale(){
+  const amBanker = STATE.bankerId===ME;
+  const amContestant = STATE.contestantId===ME;
+  const offer = STATE.offer;
+  const swapPending = offer && offer.status==="pending" && offer.swap;
+  const stage = STATE.finaleStage || "banker";
+  const otherBox = otherFinaleBox();
+  const cb = STATE.contestantBox;
+  const cName = esc(name(STATE.contestantId));
+
+  // Decide which panel this viewer sees
+  let panel = "";
+
+  if(stage==="banker" && !swapPending){
+    // Banker must act first; contestant cannot open yet
+    if(amBanker){
+      panel = `
+        <div class="card stack">
+          <div class="center sub">Banker — your call</div>
+          <p class="hint center">Two boxes left: #${cb} (the contestant's) and #${otherBox}. Offer ${cName} the chance to swap, or decline and make them open their own box.</p>
+          <button class="btn btn-gold" id="swap">Offer the box swap</button>
+          <button class="btn btn-red" id="noswap">No swap — make them open</button>
+        </div>`;
+    } else if(amContestant){
+      panel = `<div class="card center stack"><div class="sub">The finale · 2 boxes</div><p class="hint">It's in the banker's hands. Waiting to see if they offer you a swap…</p></div>`;
+    } else {
+      panel = `<div class="card center"><p class="hint">Waiting for the banker's decision…</p></div>`;
+    }
+  }
+  else if(swapPending){
+    // Banker has offered a swap; only the contestant decides
+    if(amContestant){
+      panel = `
+        <div class="card center stack">
+          <div class="sub">The banker offers a SWAP</div>
+          <div class="offer-team pop">Swap #${cb} → #${otherBox}?</div>
+          <div class="btn-row">
+            <button class="btn btn-green" id="doswap">SWAP TO #${otherBox}</button>
+            <button class="btn btn-red" id="keep">KEEP #${cb}</button>
+          </div>
+        </div>`;
+    } else {
+      panel = `<div class="card center stack"><div class="sub">Swap offered</div><div class="offer-team pop">#${cb} → #${otherBox}</div><p class="hint">Waiting for ${cName} to decide…</p></div>`;
+    }
+  }
+  else if(stage==="open"){
+    // Decision done (or no swap). Contestant opens the box to reveal.
+    const fb = STATE.finalBox || cb;
+    if(amContestant){
+      panel = `
+        <div class="card center stack">
+          <div class="sub">${STATE.swapped?`You swapped to box #${fb}`:`You kept box #${cb}`}</div>
+          <p class="hint">Time to reveal. Open the box.</p>
+          <button class="btn btn-gold" id="openFinal">Open box #${fb}</button>
+        </div>`;
+    } else {
+      panel = `<div class="card center"><p class="hint">Waiting for ${cName} to open box #${fb}…</p></div>`;
+    }
+  }
+
+  $app.innerHTML = `
+    <div class="topbar">
+      <div class="roundtag">The finale · 2 boxes</div>
+      <div class="pill gold">#${cb} vs #${otherBox}</div>
+    </div>
+    ${panel}
+    ${boardHTML()}`;
+
+  const sw=document.getElementById("swap"); if(sw) sw.onclick=()=>bankerOfferSwap();
+  const ns=document.getElementById("noswap"); if(ns) ns.onclick=()=>bankerNoSwap();
+  const ds=document.getElementById("doswap"); if(ds) ds.onclick=()=>contestantSwapDecision(true);
+  const kp=document.getElementById("keep"); if(kp) kp.onclick=()=>contestantSwapDecision(false);
+  const of=document.getElementById("openFinal"); if(of) of.onclick=()=>openFinalBox();
+}
+
+/* ---- finished ---- */
+function renderFinished(){
+  const amHost=isHost();
+  const result=STATE.finalResult;
+  const outcome=STATE.outcome||"kept";
+  const ownBoxTeam=box(STATE.contestantBox)?.team;
+  const otherBox=remainingBoxNumbers().find(n=>n!==STATE.contestantBox);
+  const otherTeam=otherBox?box(otherBox)?.team:"";
+
+  let blurb;
+  if(outcome==="banked") blurb = `Took the banker's offer. Their sealed box (#${STATE.contestantBox}) actually held <b>${esc(ownBoxTeam)}</b>.`;
+  else if(outcome==="swapped") blurb = `Swapped box #${STATE.contestantBox} (<b>${esc(ownBoxTeam)}</b>) for box #${otherBox}, landing <b>${esc(result)}</b>.`;
+  else blurb = `Held their nerve and opened box #${STATE.contestantBox}. The other box (#${otherBox}) held <b>${esc(otherTeam)}</b>.`;
+
+  $app.innerHTML = `
+    <div class="card center stack" style="padding-top:30px">
+      <div class="sub">${esc(name(STATE.contestantId))} walks away with</div>
+      <div class="offer-team pop" style="font-size:clamp(38px,12vw,68px)">${esc(result)}</div>
+      <p class="hint">${blurb}</p>
+      ${ amHost ? `<button class="btn btn-gold" id="again">Play again (back to lobby)</button>`
+                : `<p class="hint">Waiting for the host to start a new round…</p>` }
+    </div>
+    ${boardHTML(true)}`;
+
+  const a=document.getElementById("again"); if(a) a.onclick=()=>resetGame();
+}
+
+/* ---- shared board of eliminated/remaining teams ---- */
+function boardHTML(showAll=false){
+  if(!STATE.boxes||!Object.keys(STATE.boxes).length) return "";
+  const opened = {};
+  Object.values(STATE.boxes).forEach(b=>{ if(b.opened) opened[b.team]=b.pot; });
+
+  const line = (t,pot)=> {
+    const out = opened[t]!==undefined;
+    if(!showAll && !out) return `<div class="teamline">${esc(t)}<span class="hint">in play</span></div>`;
+    return `<div class="teamline ${out?'out':''} ${pot===3?'red':'blue'}">${esc(t)}${out?'<span class="hint">OUT</span>':'<span class="hint">in play</span>'}</div>`;
+  };
+
+  return `
+    <div class="card board" style="margin-top:16px">
+      <div class="pot-red">
+        <h3>Pot 3 · Red</h3>
+        ${POT3.map(t=>line(t,3)).join("")}
+      </div>
+      <div class="pot-blue">
+        <h3>Pot 4 · Blue</h3>
+        ${POT4.map(t=>line(t,4)).join("")}
+      </div>
+    </div>`;
+}
+
+/* =================================================================
+   9.  GO
+   ================================================================= */
+render();
+</script>
+</body>
+</html>
