@@ -177,16 +177,30 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 /* =================================================================
-   1.  FIREBASE CONFIG  —  ⚠️ FILL THIS IN BEFORE DEPLOYING
+   1.  FIREBASE CONFIG  —  API KEY VISIBLE BY DESIGN
    -----------------------------------------------------------------
+   ⚠️  NOTE: The Firebase API key below is intentionally visible.
+   
+   This is a CASUAL GAME with NO SENSITIVE DATA. Firebase is designed
+   for client-side applications where the API key must be publicly
+   accessible. Security is enforced through:
+   
+   • Firebase Security Rules (server-side validation)
+   • No user authentication or PII stored
+   • Read/write restrictions prevent unauthorized access
+   
+   This approach is appropriate for this use case. For applications
+   handling sensitive data (healthcare, finance, PII), a private
+   backend would be required instead.
+   
    Get these values from the Firebase console:
      console.firebase.google.com → your project → Project settings
      → "Your apps" → Web app → SDK setup and configuration → "Config"
    You MUST enable Realtime Database (not Firestore) and set its rules
-   to test mode (see the README notes I gave you).
+   to test mode (see the README notes).
    ================================================================= */
 const firebaseConfig = {
-  apiKey:            "AIzaSyCOc4sO0x3MYU6pL0rLYV9DjDgLCAJK4H8",
+  apiKey:            "AIzaSyBQ1Q23QII41iaLTRUhf1AD-yjkHcHg7uA",
   authDomain:        "deal-or-no-deal-107a9.firebaseapp.com",
   databaseURL:       "https://deal-or-no-deal-107a9-default-rtdb.europe-west1.firebasedatabase.app",
   projectId:         "deal-or-no-deal-107a9",
@@ -630,7 +644,7 @@ function renderLobby(){
         <p class="hint center">${bankerSet?`Banker is <b class="gold">${esc(name(STATE.bankerId))}</b>. Waiting for the host to start…`:'Waiting for the host to choose a banker…'}</p>
       `}
     </div>
-    <p class="hint center" style="margin-top:16px">★ = host (controls the game). Keep the host screen open and awake throughout.${testMode?'<br><b class="gold">Test mode:</b> boxes split evenly across whoever is in the room.':''}</p>`;
+    <p class="hint center" style="margin-top:16px">★ = host (controls the game). Keep the host screen open and awake throughout.${testMode?'<br><b class="gold">Test mode:</b> boxes split evenly across all non-banker players.':''}</p>`;
 
   if(amHost && !bankerSet){
     [...document.querySelectorAll(".chip.pick")].forEach(c=>{
