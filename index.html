@@ -326,13 +326,25 @@ function isHost(){ return STATE && STATE.hostId===ME; }
 function players(){ return Object.entries(STATE.players||{}).map(([id,p])=>({id,...p})); }
 function nonBankerPlayers(){ return players().filter(p=>p.id!==STATE.bankerId); }
 
+// Guard so the end-of-round timer is only scheduled once per round
+let endOfRoundTimer = null;
+
 function hostTick(){
   if(!isHost() || !STATE) return;
   const ph = STATE.phase;
 
-  // auto-advance when a round's quota of boxes is opened
+  // End of a round: the holder writes the openedThisRound bump and the opened
+  // flag + lastOpened reveal in two separate Firebase steps, so there's a
+  // small gap where the host sees the count at target but lastOpened isn't
+  // there yet. We start the 4-second timer either way; the reveal screen
+  // will appear as soon as lastOpened arrives (typically within ~100-300ms).
   if(ph==="playing" && STATE.openedThisRound >= STATE.roundTarget){
-    update(roomRef(), { phase:"offer" });
+    if(!endOfRoundTimer){
+      endOfRoundTimer = setTimeout(()=>{
+        endOfRoundTimer = null;
+        update(roomRef(), { phase:"offer", lastOpened:null });
+      }, 4000);
+    }
   }
   // when contestant says NO DEAL, advance to next round (or finale)
   if(ph==="offer" && STATE.offer && STATE.offer.status==="nodeal"){
@@ -383,16 +395,16 @@ async function pickContestant(){
 }
 
 async function beginRounds(){
-  await update(roomRef(), { phase:"playing", round:1, roundTarget:ROUND_TARGETS[0], openedThisRound:0, offer:null, calledBox:0 });
+  await update(roomRef(), { phase:"playing", round:1, roundTarget:ROUND_TARGETS[0], openedThisRound:0, offer:null, calledBox:0, lastOpened:null });
 }
 
 async function advanceRound(){
   const next = STATE.round + 1;
   if(next > ROUND_TARGETS.length){
     // finale: only the contestant box + 1 other remain. Banker acts first.
-    await update(roomRef(), { phase:"finale", offer:null, calledBox:0, finaleStage:"banker", swapped:false, finalBox:STATE.contestantBox });
+    await update(roomRef(), { phase:"finale", offer:null, calledBox:0, finaleStage:"banker", swapped:false, finalBox:STATE.contestantBox, lastOpened:null });
   } else {
-    await update(roomRef(), { phase:"playing", round:next, roundTarget:ROUND_TARGETS[next-1], openedThisRound:0, offer:null, calledBox:0 });
+    await update(roomRef(), { phase:"playing", round:next, roundTarget:ROUND_TARGETS[next-1], openedThisRound:0, offer:null, calledBox:0, lastOpened:null });
   }
 }
 
@@ -422,11 +434,19 @@ async function openBox(n){
     return (cur||0)+1;
   });
   if(!res.committed) return;
-  await update(roomRef(), {
+  const newCount = res.snapshot ? res.snapshot.val() : (STATE.openedThisRound||0)+1;
+  const isLastOfRound = newCount >= STATE.roundTarget;
+  const writeObj = {
     [`boxes/b${n}/opened`]: true,
     [`boxes/b${n}/openedBy`]: ME,
     calledBox: 0
-  });
+  };
+  // Only on the LAST box of the round, broadcast a reveal so screens show it
+  // for a few seconds before the banker offer appears.
+  if(isLastOfRound){
+    writeObj.lastOpened = { no:n, team:b.team, pot:b.pot };
+  }
+  await update(roomRef(), writeObj);
 }
 
 async function submitOffer(team, isSwap){
@@ -644,7 +664,7 @@ function renderLobby(){
         <p class="hint center">${bankerSet?`Banker is <b class="gold">${esc(name(STATE.bankerId))}</b>. Waiting for the host to start…`:'Waiting for the host to choose a banker…'}</p>
       `}
     </div>
-    <p class="hint center" style="margin-top:16px">★ = host (controls the game). Keep the host screen open and awake throughout.${testMode?'<br><b class="gold">Test mode:</b> boxes split evenly across all non-banker players.':''}</p>`;
+    <p class="hint center" style="margin-top:16px">★ = host (controls the game). Keep the host screen open and awake throughout.${testMode?'<br><b class="gold">Test mode:</b> boxes split evenly across whoever is in the room.':''}</p>`;
 
   if(amHost && !bankerSet){
     [...document.querySelectorAll(".chip.pick")].forEach(c=>{
@@ -731,6 +751,22 @@ function renderContestantResult(){
 
 /* ---- main play screen ---- */
 function renderPlaying(){
+  // End of round: show the last box's team for a few seconds before the offer screen
+  if(STATE.lastOpened && STATE.openedThisRound >= STATE.roundTarget){
+    const r = STATE.lastOpened;
+    $app.innerHTML = `
+      <div class="topbar">
+        <div class="roundtag">Round ${STATE.round} · end</div>
+        <div class="pill gold">Last box</div>
+      </div>
+      <div class="card center stack" style="padding-top:36px;padding-bottom:36px">
+        <div class="sub">Box #${r.no} held…</div>
+        <div class="offer-team pop" style="color:${r.pot===3?'var(--red)':'var(--blue)'}">${esc(r.team)}</div>
+        <span class="pill ${r.pot===3?'red':'blue'}" style="margin-top:4px">${r.pot===3?'Pot 3 · Red':'Pot 4 · Blue'}</span>
+        <p class="hint" style="margin-top:18px">Speaking to the banker…</p>
+      </div>`;
+    return;
+  }
   const amContestant = STATE.contestantId===ME;
   const amBanker = STATE.bankerId===ME;
   const left = STATE.roundTarget - (STATE.openedThisRound||0);
