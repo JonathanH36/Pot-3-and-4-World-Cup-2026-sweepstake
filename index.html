@@ -162,9 +162,21 @@
     padding:14px 16px;font-size:13px;line-height:1.5;}
   .setup-banner b{color:#ff8a8a;}
   code{background:#070910;border:1px solid var(--panel-edge);border-radius:6px;padding:2px 6px;font-size:12px;}
+
+  /* ---- persistent leave button ---- */
+  #leaveBtn{
+    display:none;position:fixed;top:14px;right:14px;z-index:50;
+    font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;letter-spacing:.04em;
+    background:rgba(16,19,31,.85);border:1px solid var(--panel-edge);color:var(--muted);
+    border-radius:999px;padding:8px 16px;cursor:pointer;backdrop-filter:blur(6px);
+    transition:color .15s ease, border-color .15s ease, transform .08s ease;
+  }
+  #leaveBtn:hover{color:#ff8a8a;border-color:var(--red);}
+  #leaveBtn:active{transform:scale(.95);}
 </style>
 </head>
 <body>
+<button id="leaveBtn" type="button">Leave room</button>
 <div class="wrap" id="app"></div>
 
 <!-- ============================================================= -->
@@ -226,12 +238,6 @@ function uid(){
 function saveRoom(code){ try{ localStorage.setItem("dond_room", code||""); }catch(e){} }
 function loadRoom(){ try{ return localStorage.getItem("dond_room")||""; }catch(e){ return ""; } }
 function clearRoom(){ try{ localStorage.removeItem("dond_room"); }catch(e){} }
-function leaveRoom(){
-  if(unsub){ unsub(); unsub=null; }
-  ROOM = null; STATE = null;
-  clearRoom();
-  render();
-}
 let ME = uid();
 
 let db = null;
@@ -301,11 +307,12 @@ async function joinRoom(code, name){
   // Name-based session restore — if this name is already in the room, reclaim that slot.
   // This handles lost sessions (tab closed, phone locked, etc.) without creating a ghost player.
   const existingPlayers = data.players || {};
-  const matchByName = Object.values(existingPlayers).find(
-    p => p.name && p.name.toLowerCase() === name.toLowerCase()
+  // Player ids are the object KEYS, not a field inside the value, so use entries.
+  const matchByName = Object.entries(existingPlayers).find(
+    ([id,p]) => p.name && p.name.toLowerCase() === name.toLowerCase()
   );
   if(matchByName){
-    ME = matchByName.id;
+    ME = matchByName[0];
     saveRoom(ROOM);
     presence();
     listen();
@@ -527,6 +534,23 @@ async function openFinalBox(){              // contestant opens whichever box is
   });
 }
 
+/* ---- leave the current room (any device) ---- */
+async function leaveRoom(){
+  // Mid-game we exit locally only, so we don't corrupt a game in progress by
+  // pulling a player's boxes out from under it. In the lobby (and only if we're
+  // not the host) it's safe to remove ourselves from the player list entirely.
+  if(ROOM && STATE && STATE.phase!=="lobby"){
+    if(!confirm("Leave the game? You can rejoin with the same code and name.")) return;
+  }
+  try{ if(unsub){ unsub(); unsub=null; } }catch(e){}
+  if(ROOM && STATE && STATE.phase==="lobby" && STATE.hostId!==ME){
+    try{ await set(roomRef("/players/"+ME), null); }catch(e){}
+  }
+  clearRoom();
+  ROOM=null; STATE=null;
+  render();
+}
+
 async function resetGame(){
   await update(roomRef(), {
     phase:"lobby", contestantId:"", contestantBox:0, calledBox:0, pickedNumber:0,
@@ -583,6 +607,8 @@ function playGridHTML(){
    8.  RENDER
    ================================================================= */
 function render(){
+  const lb=document.getElementById("leaveBtn");
+  if(lb) lb.style.display = (ROOM && STATE) ? "block" : "none";
   if(!CONFIGURED){ return renderSetup(); }
   if(!ROOM || !STATE){ return renderLanding(); }
 
@@ -659,10 +685,7 @@ function renderLobby(){
   $app.innerHTML = `
     <div class="topbar">
       <div><div class="sub">Room code</div><div class="roomcode">${STATE.code}</div></div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <div class="pill gold">${ps.length}${testMode?'':'/6'} players</div>
-        <button class="btn btn-ghost" id="leaveBtn" style="width:auto;padding:8px 14px;font-size:13px">✕ Leave</button>
-      </div>
+      <div class="pill gold">${ps.length}${testMode?'':'/6'} players</div>
     </div>
     <div class="card stack-lg">
       <div class="center qr">
@@ -700,7 +723,6 @@ function renderLobby(){
       c.onclick=()=>update(roomRef(),{bankerId:c.dataset.id});
     });
   }
-  const lb=document.getElementById("leaveBtn"); if(lb) lb.onclick=()=>leaveRoom();
   const cb=document.getElementById("clearBanker"); if(cb) cb.onclick=()=>update(roomRef(),{bankerId:""});
   const tt=document.getElementById("toggleTest"); if(tt) tt.onclick=()=>update(roomRef(),{testMode:!testMode});
   const st=document.getElementById("start"); if(st) st.onclick=()=>startContestantDraw();
@@ -1027,6 +1049,8 @@ function boardHTML(showAll=false){
    9.  GO
    ================================================================= */
 async function boot(){
+  const lb=document.getElementById("leaveBtn");
+  if(lb) lb.onclick=()=>leaveRoom();
   render(); // Show landing page immediately — never block on auth
   if(!CONFIGURED) return;
   try{
