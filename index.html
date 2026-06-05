@@ -212,18 +212,20 @@ const ROUND_TARGETS = [5,5,4,4,4]; // boxes opened per round; then 2 left for th
    3.  LOCAL IDENTITY  (persists across refreshes on a real host)
    ================================================================= */
 function uid(){
-  // sessionStorage is per-TAB, so each browser tab is a separate player.
-  // (localStorage is shared across tabs — esp. on file:// pages — which made
-  //  every new tab look like the same person.) Survives reloads of the same tab.
+  // localStorage persists across refreshes AND browser closes, so the same
+  // device always gets the same player ID. Fixes the rejoin-after-refresh bug.
   try{
-    let id = sessionStorage.getItem("dond_pid");
-    if(!id){ id = Math.random().toString(36).slice(2,10); sessionStorage.setItem("dond_pid", id); }
+    let id = localStorage.getItem("dond_pid");
+    if(!id){ id = Math.random().toString(36).slice(2,10); localStorage.setItem("dond_pid", id); }
     return id;
   }catch(e){
     if(!window.__dond_pid) window.__dond_pid = Math.random().toString(36).slice(2,10);
     return window.__dond_pid;
   }
 }
+function saveRoom(code){ try{ localStorage.setItem("dond_room", code||""); }catch(e){} }
+function loadRoom(){ try{ return localStorage.getItem("dond_room")||""; }catch(e){ return ""; } }
+function clearRoom(){ try{ localStorage.removeItem("dond_room"); }catch(e){} }
 let ME = uid();
 
 let db = null;
@@ -278,6 +280,7 @@ async function createRoom(name){
     boxes:{}, offer:null, finalResult:"", bankedTeam:"", outcome:""
   };
   await set(roomRef(), room);
+  saveRoom(code);
   presence();
   listen();
 }
@@ -297,6 +300,7 @@ async function joinRoom(code, name){
   );
   if(matchByName){
     ME = matchByName.id;
+    saveRoom(ROOM);
     presence();
     listen();
     return;
@@ -306,6 +310,7 @@ async function joinRoom(code, name){
     throw new Error("That game has already started.");
 
   await update(roomRef(`/players/${ME}`), { name, joinedAt: serverTimestamp() });
+  saveRoom(ROOM);
   presence();
   listen();
 }
@@ -1011,7 +1016,25 @@ function boardHTML(showAll=false){
 /* =================================================================
    9.  GO
    ================================================================= */
-render();
+async function boot(){
+  if(!CONFIGURED){ render(); return; }
+  await _authReady;
+  const savedRoom = loadRoom();
+  if(savedRoom){
+    const snap = await get(ref(db, `rooms/${savedRoom}`));
+    if(snap.exists() && snap.val().players?.[ME]){
+      // Player is still in this room — skip landing page and drop straight back in
+      ROOM = savedRoom;
+      presence();
+      listen();
+      return;
+    } else {
+      clearRoom(); // Room gone or player not in it
+    }
+  }
+  render();
+}
+boot();
 </script>
 </body>
 </html>
