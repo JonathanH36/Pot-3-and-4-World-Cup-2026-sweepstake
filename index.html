@@ -1017,22 +1017,24 @@ function boardHTML(showAll=false){
    9.  GO
    ================================================================= */
 async function boot(){
-  if(!CONFIGURED){ render(); return; }
-  await _authReady;
-  const savedRoom = loadRoom();
-  if(savedRoom){
-    const snap = await get(ref(db, `rooms/${savedRoom}`));
-    if(snap.exists() && snap.val().players?.[ME]){
-      // Player is still in this room — skip landing page and drop straight back in
-      ROOM = savedRoom;
-      presence();
-      listen();
-      return;
-    } else {
-      clearRoom(); // Room gone or player not in it
+  render(); // Show landing page immediately — never block on auth
+  if(!CONFIGURED) return;
+  try{
+    await _authReady;
+    const savedRoom = loadRoom();
+    if(savedRoom){
+      const snap = await get(ref(db, `rooms/${savedRoom}`));
+      if(snap.exists() && snap.val().players?.[ME]){
+        // Player is still in this room — drop straight back in
+        ROOM = savedRoom;
+        presence();
+        listen();
+        return;
+      } else {
+        clearRoom();
+      }
     }
-  }
-  render();
+  }catch(e){ console.error("Boot error:", e); }
 }
 boot();
 </script>
