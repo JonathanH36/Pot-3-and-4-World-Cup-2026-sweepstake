@@ -226,6 +226,12 @@ function uid(){
 function saveRoom(code){ try{ localStorage.setItem("dond_room", code||""); }catch(e){} }
 function loadRoom(){ try{ return localStorage.getItem("dond_room")||""; }catch(e){ return ""; } }
 function clearRoom(){ try{ localStorage.removeItem("dond_room"); }catch(e){} }
+function leaveRoom(){
+  if(unsub){ unsub(); unsub=null; }
+  ROOM = null; STATE = null;
+  clearRoom();
+  render();
+}
 let ME = uid();
 
 let db = null;
@@ -653,7 +659,10 @@ function renderLobby(){
   $app.innerHTML = `
     <div class="topbar">
       <div><div class="sub">Room code</div><div class="roomcode">${STATE.code}</div></div>
-      <div class="pill gold">${ps.length}${testMode?'':'/6'} players</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="pill gold">${ps.length}${testMode?'':'/6'} players</div>
+        <button class="btn btn-ghost" id="leaveBtn" style="width:auto;padding:8px 14px;font-size:13px">✕ Leave</button>
+      </div>
     </div>
     <div class="card stack-lg">
       <div class="center qr">
@@ -691,6 +700,7 @@ function renderLobby(){
       c.onclick=()=>update(roomRef(),{bankerId:c.dataset.id});
     });
   }
+  const lb=document.getElementById("leaveBtn"); if(lb) lb.onclick=()=>leaveRoom();
   const cb=document.getElementById("clearBanker"); if(cb) cb.onclick=()=>update(roomRef(),{bankerId:""});
   const tt=document.getElementById("toggleTest"); if(tt) tt.onclick=()=>update(roomRef(),{testMode:!testMode});
   const st=document.getElementById("start"); if(st) st.onclick=()=>startContestantDraw();
