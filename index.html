@@ -171,33 +171,21 @@
 <!--  APP                                                          -->
 <!-- ============================================================= -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
 import {
   getDatabase, ref, set, update, get, onValue, runTransaction, onDisconnect, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+import { getAuth, signInAnonymously, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 
 /* =================================================================
-   1.  FIREBASE CONFIG  —  API KEY VISIBLE BY DESIGN
+   1.  FIREBASE CONFIG  —  ⚠️ FILL THIS IN BEFORE DEPLOYING
    -----------------------------------------------------------------
-   ⚠️  NOTE: The Firebase API key below is intentionally visible.
-   
-   This is a CASUAL GAME with NO SENSITIVE DATA. Firebase is designed
-   for client-side applications where the API key must be publicly
-   accessible. Security is enforced through:
-   
-   • Firebase Security Rules (server-side validation)
-   • No user authentication or PII stored
-   • Read/write restrictions prevent unauthorized access
-   
-   This approach is appropriate for this use case. For applications
-   handling sensitive data (healthcare, finance, PII), a private
-   backend would be required instead.
-   
    Get these values from the Firebase console:
      console.firebase.google.com → your project → Project settings
      → "Your apps" → Web app → SDK setup and configuration → "Config"
    You MUST enable Realtime Database (not Firestore) and set its rules
-   to test mode (see the README notes).
+   to test mode (see the README notes I gave you).
    ================================================================= */
 const firebaseConfig = {
   apiKey:            "AIzaSyBQ1Q23QII41iaLTRUhf1AD-yjkHcHg7uA",
@@ -236,12 +224,22 @@ function uid(){
     return window.__dond_pid;
   }
 }
-const ME = uid();
+let ME = uid();
 
 let db = null;
+let _auth = null;
+let _authReady = Promise.resolve();
+
 if(CONFIGURED){
   const fbApp = initializeApp(firebaseConfig);
   db = getDatabase(fbApp);
+  _auth = getAuth(fbApp);
+  _authReady = new Promise(resolve => {
+    onAuthStateChanged(_auth, user => {
+      if(user){ resolve(); }
+      else { signInAnonymously(_auth).catch(e => console.error("Anon auth failed:", e)); }
+    });
+  });
 }
 
 /* =================================================================
@@ -268,6 +266,7 @@ const esc = s => (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;
 function roomRef(p=""){ return ref(db, `rooms/${ROOM}${p}`); }
 
 async function createRoom(name){
+  await _authReady;
   const code = genCode();
   ROOM = code;
   const room = {
@@ -284,12 +283,28 @@ async function createRoom(name){
 }
 
 async function joinRoom(code, name){
+  await _authReady;
   ROOM = code.toUpperCase().trim();
   const snap = await get(roomRef());
   if(!snap.exists()) throw new Error("No room with that code.");
   const data = snap.val();
-  if(data.phase!=="lobby" && !data.players?.[ME])
+
+  // Name-based session restore — if this name is already in the room, reclaim that slot.
+  // This handles lost sessions (tab closed, phone locked, etc.) without creating a ghost player.
+  const existingPlayers = data.players || {};
+  const matchByName = Object.values(existingPlayers).find(
+    p => p.name && p.name.toLowerCase() === name.toLowerCase()
+  );
+  if(matchByName){
+    ME = matchByName.id;
+    presence();
+    listen();
+    return;
+  }
+
+  if(data.phase !== "lobby")
     throw new Error("That game has already started.");
+
   await update(roomRef(`/players/${ME}`), { name, joinedAt: serverTimestamp() });
   presence();
   listen();
